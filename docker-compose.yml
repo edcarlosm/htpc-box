@@ -1,0 +1,175 @@
+version: "3.4"
+services:
+  transmission:
+    image: lscr.io/linuxserver/transmission
+    container_name: transmission
+    network_mode: host
+    environment:
+      - PUID=${PUID} # default user id, defined in .env
+      - PGID=${PGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+      - UMASK_SET=022 #optional
+      #- TRANSMISSION_WEB_HOME=/combustion-release/ #optional
+      - USER=admin
+      - PASS=ed6433@@
+      #- WHITELIST=iplist #optional
+      #- PEERPORT=peerport #optional
+      #- HOST_WHITELIST=dnsnane list #optional
+    volumes:
+      - ${ROOT}/config/transmission:/config
+      - ${HD}/downloads:/downloads
+      - ${HD}/Driver:/Driver
+      - ${HD}/watch:/watch
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    restart: unless-stopped
+
+  jackett:
+    container_name: jackett
+    image: linuxserver/jackett:development
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID=${PUID} # default user id, defined in .env
+      - PGID=${PGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${HD}/downloads/jackett/torrent-blackhole:/downloads # place where to put .torrent files for manual download
+      - ${ROOT}/config/jackett:/config # config files
+      - ${HD}/downloads:/HD
+
+  sonarr:
+    container_name: sonarr
+    image: linuxserver/sonarr:develop
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID=${PUID} # default user id, defined in .env
+      - PGID=${PGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${ROOT}/config/sonarr:/config # config files
+      - ${HD}/Driver:/tv # tv shows folder
+      - ${HD}/downloads:/downloads
+
+  radarr:
+    container_name: radarr
+    image: linuxserver/radarr:nightly
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID=${PUID} # default user id, defined in .env
+      - PGID=${PGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${ROOT}/config/radarr:/config # config files
+      - ${HD}/Driver/Filmes:/movies # movies folder
+      - ${HD}/downloads:/downloads
+      
+  bazarr:
+    container_name: bazarr
+    image: linuxserver/bazarr
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID=${PUID} # default user id, defined in .env
+      - PGID=${PGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+      - UMASK_SET=022 #optional
+    volumes:
+      - ${ROOT}/config/bazarr:/config # config files
+      - ${HD}/Driver/Filmes:/movies # movies folder
+      - ${HD}/Driver:/tv # tv shows folder
+      - ${HD}:/HD
+
+  
+  nzbhydra2:
+    container_name: nzbhydra2    
+    image: lscr.io/linuxserver/nzbhydra2
+    restart: unless-stopped    
+    network_mode: host
+    environment:
+      - PUID=${PUID} # default user id, defined in .env
+      - PGID=${PGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - ${ROOT}/config/nzbhydra2:/config
+      - ${HD}/downloads/nzbhydra2:/downloads
+      - ${HD}/downloads:/HD
+
+  mount-rclone01:
+    container_name: mount-rclone01
+    image: mumiehub/rclone-mount:latest
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID=${PUID} # default user id, defined in .env
+      - PGID=${PGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    # privileged: true
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      - RemotePath=kabacorp:Dados
+      #- MountPoint=/media/googledrive/
+      - ConfigDir=/rconfig
+      - ConfigName=drive.conf
+      - MountCommands=--allow-other --allow-non-empty
+    stdin_open: true
+    tty: true
+    volumes:
+      - /home/edkaba/hd500/docker:/rconfig
+      - ./Driver:/mnt/mediaefs:shared
+
+
+
+#  filebot:
+#    container_name:filebot   
+#    image: jlesage/filebot
+#    network_mode: host
+#    environment:
+#      - PUID=${PUID} # default user id, defined in .env
+#      - PGID=${PGID} # default group id, defined in .env
+#      - TZ=${TZ} # timezone, defined in .env
+#    volumes:
+#      - ${ROOT}/config/filebot:/config:rw # config files
+#      - ${HD}/Driver/Filmes:/movies:rw" # movies folder
+#      - ${HD}/Driver:/tv:rw" # tv shows folder
+
+#  jellyfin_rclone:
+#     container_name: jellyfin_rclone   
+#     image: coolimc/jellyfin-rclone
+#     network_mode: host
+#     volumes:
+#       - /home/edkaba/hd500/docker:/rconfig
+#       - /home/edkaba/hd500/docker/jellyfin/config:/config
+#       - /home/edkaba/hd500/:/hd500
+#      #- ${HD}/downloads/Driver:/mnt/mediaefs:shared
+#       - ~/hd500/docker/htpc-download-box/Driver:/media/Driver
+#     security_opt:
+#       - apparmor:unconfined
+#     cap_add:
+#       - SYS_ADMIN
+#     environment:
+#       - RemotePath=kabacorp:Dados 
+#       - MountPoint=/media/googledrive/
+#       - ConfigDir=/rconfig
+#       - ConfigName=drive.conf
+#       - MountCommands=--allow-other --allow-non-empty
+#       - PUID=${PUID} # default user id, defined in .env
+#       - PGID=${PGID} # default group id, defined in .env
+#       - TZ=${TZ} # timezone, defined in .env
+#     devices:
+#     #FUSE Device
+#       - /dev/fuse
+#     # GPU Devices
+#     restart: unless-stopped
